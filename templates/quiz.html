@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Quiz{% endblock %}
+
+{% block content %}
+<style>
+  body { background: linear-gradient(135deg, #1e3c72, #2a5298); font-family: 'Open Sans', sans-serif; }
+  .quiz-container {
+    max-width: 800px; margin: 50px auto; background: rgba(255,255,255,0.05);
+    padding: 25px; border-radius: 16px; backdrop-filter: blur(15px);
+    box-shadow: 0 0 35px rgba(0,0,0,0.3); color: white;
+  }
+  h2 { text-align: center; color: #ffeb3b; text-shadow: 0 0 8px rgba(255,235,59,0.8); }
+  .question { margin: 20px 0; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 8px rgba(255,235,59,0.8);}
+  
+  .options { margin-bottom: 15px; }
+  .options label {
+    display: flex; align-items: center;
+    margin: 8px 0; padding: 0;
+    cursor: pointer; border-radius: 8px;
+    transition: 0.3s;
+  }
+
+  /* Hide radio but keep clickable */
+  .options input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .options span {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    transition: 0.3s;
+    box-shadow: 0 0 8px rgba(255,235,59,0.2);
+  }
+
+  .options input:checked + span {
+    background: rgba(255,235,59,0.3);
+    box-shadow: 0 0 12px rgba(255,235,59,0.6);
+    transform: scale(1.02);
+  }
+
+  .options label:hover span {
+    background: rgba(255,235,59,0.2);
+    transform: scale(1.03);
+  }
+
+  .submit-btn {
+    display: block; margin: 25px auto 0; background: #ffeb3b; color: #333;
+    font-weight: bold; border-radius: 8px; padding: 10px 20px; text-decoration: none;
+    transition: 0.3s;
+  }
+  .submit-btn:hover { background: #ffd600; transform: scale(1.05); box-shadow: 0 0 12px rgba(255,235,59,0.6); }
+</style>
+
+<div class="quiz-container">
+  <h2>✨ Your Quiz</h2>
+  <form method="post" action="{% url 'submit_quiz' %}">
+    {% csrf_token %}
+    {% for q in questions %}
+      <div class="question">{{ forloop.counter }}. {{ q.question }}</div>
+      <div class="options">
+        {% for opt in q.options %}
+          <label>
+            <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ opt }}">
+            <span>{{ opt }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="submit-btn">Submit Quiz</button>
+  </form>
+</div>
+{% endblock %}
+
+
+
+

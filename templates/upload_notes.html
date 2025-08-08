@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Generate AI Notes - StudyAssistant{% endblock %}
+
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto+Slab:wght@700&display=swap');
+
+  body {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 65px);
+    padding: 100px 0 40px; /* Fixed top padding to avoid navbar overlap */
+  }
+
+  .upload-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 20px 18px 25px;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.35), 0 0 12px rgba(255, 235, 59, 0.2);
+    backdrop-filter: blur(20px);
+    max-width: 300px;
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.8s ease-in-out;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .upload-card::before {
+    content: '';
+    position: absolute;
+    top: -60%;
+    left: -60%;
+    width: 220%;
+    height: 220%;
+    background: conic-gradient(from 0deg, #ffeb3b, #ffd600, #ffeb3b);
+    animation: rotate 7s linear infinite;
+    z-index: 0;
+    opacity: 0.08;
+  }
+
+  .upload-card::after {
+    content: '';
+    position: absolute;
+    top: 1.5px;
+    left: 1.5px;
+    right: 1.5px;
+    bottom: 1.5px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 14px;
+    z-index: 0;
+  }
+
+  .upload-card h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffeb3b;
+    margin-bottom: 18px;
+    font-family: 'Roboto Slab', serif;
+    text-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+    position: relative;
+    z-index: 1;
+  }
+
+  .upload-card h2::before {
+    content: "🧠";
+    margin-right: 8px;
+  }
+
+  form {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .warning-box {
+    background: rgba(255, 235, 59, 0.1);
+    color: #ffeb3b;
+    font-size: 13px;
+    border: 1px solid rgba(255, 235, 59, 0.5);
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    text-align: left;
+    text-shadow: 0 0 6px rgba(255, 235, 59, 0.4);
+  }
+
+  form label {
+    font-size: 13px;
+    color: #ffeb3b;
+    text-shadow: 0 0 6px rgba(255, 235, 59, 0.8);
+    text-align: left;
+    margin-bottom: 4px;
+  }
+
+  form input, form select, form textarea {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 8px;
+    outline: none;
+    color: #fff;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.25);
+    transition: 0.3s ease;
+  }
+
+  form input[type="file"] {
+    padding: 7px;
+    cursor: pointer;
+  }
+
+  form input:focus, form textarea:focus, form select:focus {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+    transform: scale(1.02);
+  }
+
+  .btn {
+    padding: 8px 14px;
+    background: #ffeb3b;
+    color: #2a2a2a;
+    font-weight: bold;
+    border-radius: 8px;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s ease;
+    box-shadow: 0 0 12px rgba(255, 235, 59, 0.4);
+  }
+
+  .btn:hover {
+    background: #ffd600;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 235, 59, 0.7);
+  }
+
+  .loading-msg {
+    color: #fff;
+    font-size: 13px;
+    margin-top: 8px;
+    display: none;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+  }
+
+  .loader {
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #ffeb3b;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: none;
+    margin: 10px auto 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+</style>
+
+<div class="page-wrapper">
+  <div class="upload-card">
+    <h2>Generate AI Notes</h2>
+    <form method="POST" action="{% url 'generated_notes' %}" enctype="multipart/form-data" onsubmit="startLoading()">
+      {% csrf_token %}
+      <div class="warning-box">
+        ⚠️ <strong>Note:</strong> Please do not upload <u>handwritten notes</u> or files with more than <u>15 pages</u>.
+      </div>
+      {{ form.as_p }}
+      <button type="submit" class="btn" id="submitBtn">Generate Notes</button>
+      <div class="loader" id="loader"></div>
+      <div class="loading-msg" id="loadingMsg">Generating notes... this might take a few seconds ⏳</div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function startLoading() {
+    const btn = document.getElementById('submitBtn');
+    const loader = document.getElementById('loader');
+    const msg = document.getElementById('loadingMsg');
+
+    btn.disabled = true;
+    btn.innerText = 'Generating Notes...';
+    loader.style.display = 'block';
+    msg.style.display = 'block';
+  }
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+

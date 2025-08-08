@@ -1,0 +1,13 @@
+Django
+python-dotenv
+gunicorn
+psycopg2-binary
+google-generativeai
+PyMuPDF
+whitenoise
+langchain
+langchain-google-genai
+langchain_community
+faiss-cpu
+beautifulsoup4
+

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - StudyAssistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.12);
+            padding: 30px 25px;
+            border-radius: 18px;
+            text-align: center;
+            width: 90%;
+            max-width: 320px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+            backdrop-filter: blur(15px);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        h2 {
+            margin-bottom: 5px;
+            font-size: 22px;
+            color: #ffeb3b;
+        }
+
+        p {
+            font-size: 13px;
+            color: #f0f0f0;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 92%;
+            padding: 10px;
+            margin: 7px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        input:focus {
+            background: rgba(255,255,255,0.25);
+            outline: none;
+        }
+
+        button {
+            width: 94%;
+            padding: 11px;
+            font-size: 14px;
+            background: #ffeb3b;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover { background: #ffd600; transform: scale(1.04); }
+
+        .error {
+            color: #ff5252;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* Responsive for smaller phones */
+        @media (max-width: 400px) {
+            .form-container {
+                padding: 20px 15px;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>OTP Verification</h2>
+        <p>Enter the 6-digit OTP sent to your email</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="otp" placeholder="______" maxlength="6" required>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <button type="submit">Verify</button>
+        </form>
+    </div>
+</body>
+</html>
+

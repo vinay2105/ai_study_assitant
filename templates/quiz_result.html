@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Quiz Result{% endblock %}
+
+{% block content %}
+<style>
+  body { 
+    background: linear-gradient(135deg, #1e3c72, #2a5298); 
+    font-family: 'Open Sans', sans-serif; 
+  }
+  .result-card {
+    max-width: 900px; margin: 40px auto; 
+    background: rgba(255,255,255,0.05);
+    padding: 25px; border-radius: 16px; 
+    backdrop-filter: blur(15px);
+    text-align: center; color: white; 
+    box-shadow: 0 0 35px rgba(0,0,0,0.3);
+  }
+  .score {
+    font-size: 2rem; color: #ffeb3b; font-weight: bold;
+    text-shadow: 0 0 12px rgba(255,235,59,0.8);
+    margin-bottom: 30px;
+  }
+  .question-block { 
+    text-align: left; margin-bottom: 25px; 
+    padding: 15px; border-radius: 12px; 
+    background: rgba(255,255,255,0.05);
+  }
+  .question { 
+    font-weight: bold; color: #ffeb3b; 
+    text-shadow: 0 0 8px rgba(255,235,59,0.8);
+    margin-bottom: 10px;
+  }
+  .option {
+    display: block; margin: 6px 0; padding: 6px 12px;
+    border-radius: 8px; transition: 0.3s;
+  }
+  .correct { 
+    background: rgba(0,255,0,0.2); color: #00ff6a; 
+    text-shadow: 0 0 8px rgba(0,255,0,0.8);
+    font-weight: bold;
+  }
+  .wrong { 
+    background: rgba(255,0,0,0.2); color: #ff4c4c; 
+    text-shadow: 0 0 8px rgba(255,0,0,0.8);
+    font-weight: bold;
+  }
+  .btn-home {
+    display: inline-block; margin-top: 30px; 
+    background: #ffeb3b; color: #333;
+    padding: 10px 20px; border-radius: 8px; 
+    font-weight: bold; text-decoration: none; 
+    transition: 0.3s;
+  }
+  .btn-home:hover { 
+    background: #ffd600; transform: scale(1.05); 
+    box-shadow: 0 0 12px rgba(255,235,59,0.6); 
+  }
+</style>
+
+<div class="result-card">
+  <div class="score">Your Score: {{ score }}/{{ total }}</div>
+
+  {% for r in results %}
+    <div class="question-block">
+      <div class="question">{{ forloop.counter }}. {{ r.question }}</div>
+
+      {% for opt in r.options %}
+        {% if opt == r.correct_answer %}
+          <div class="option correct">{{ opt }} ✅</div>
+        {% elif r.user_answer == opt %}
+          <div class="option wrong">{{ opt }} ❌</div>
+        {% else %}
+          <div class="option">{{ opt }}</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endfor %}
+
+  <a href="{% url 'upload_notes' %}" class="btn-home">🏠 Back to Notes</a>
+</div>
+{% endblock %}
+
+
+

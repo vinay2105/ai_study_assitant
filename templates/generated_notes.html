@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}Your AI Generated Notes{% endblock %}
+
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&family=Open+Sans:wght@400&display=swap');
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .notes-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 100px 10px 30px; /* Fixed top padding to avoid navbar */
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+  }
+
+  .notes-header h2 {
+    font-family: 'Roboto Slab', serif;
+    color: #ffeb3b;
+    font-size: 1.8rem;
+    text-shadow: 0 0 8px rgba(255,235,59,0.8);
+    margin-bottom: 20px;
+  }
+
+  #notes-container {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 35px rgba(0,0,0,0.3);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 900px;
+    height: 75vh;
+    overflow-y: auto;
+    padding: 20px 25px;
+    color: white;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 15px;
+  }
+
+  #notes-container h2, #notes-container h3 {
+    color: #ffeb3b;
+    font-family: 'Roboto Slab', serif;
+    margin-top: 1em;
+    text-shadow: 0 0 8px rgba(255,235,59,0.8);
+  }
+
+  #notes-container ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+
+  #notes-container li {
+    margin-left: 1.5em;
+    position: relative;
+    margin-bottom: 0.4em;
+  }
+
+  #notes-container li::before {
+    content: '•';
+    position: absolute;
+    left: -1.2em;
+    color: #ffd600;
+    font-size: 1.2em;
+  }
+
+  .word {
+    opacity: 0;
+    display: inline-block;
+    white-space: pre;
+    text-shadow: 0 0 6px rgba(255,235,59,0.7);
+    transition: opacity 0.1s ease-in;
+  }
+
+  .word.visible {
+    opacity: 1;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 20px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .action-btn {
+    background: #ffeb3b;
+    color: #333;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 10px 20px;
+    text-decoration: none;
+    transition: 0.3s;
+    box-shadow: 0 0 12px rgba(255,235,59,0.6);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .action-btn:hover {
+    background: #ffd600;
+    transform: scale(1.05);
+    box-shadow: 0 0 18px rgba(255,235,59,0.9);
+  }
+
+  #notes-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  #notes-container::-webkit-scrollbar-thumb {
+    background: rgba(255,235,59,0.6);
+    border-radius: 10px;
+  }
+
+  #quiz-loading::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid #ffeb3b;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<div class="notes-page">
+  <div class="notes-header">
+    <h2>✨ Your AI Generated Notes</h2>
+  </div>
+
+  <div id="notes-container"></div>
+
+  <div class="button-group">
+    <!-- PDF Download -->
+    <button id="download-btn" class="action-btn">📄 Download as PDF</button>
+
+    <!-- Start Quiz -->
+    <form method="GET" action="{% url 'generate_quiz' %}" onsubmit="startQuizLoading()" style="margin: 0;">
+      <button type="submit" id="quiz-btn" class="action-btn">📝 Start Quiz</button>
+    </form>
+
+    <!-- Ask Doubt -->
+    <a href="{% url 'ask_doubt' %}" class="action-btn">💬 Ask Doubt</a>
+  </div>
+
+  <div id="quiz-loading" style="display: none; color: #ffeb3b; font-size: 13px; margin-top: 12px; text-align: center;">
+    Generating Quiz... Please wait ⏳
+  </div>
+</div>
+
+<!-- jsPDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  // Render Notes from escaped HTML
+  let rawHTML = `{{ generated_notes|escapejs }}`.trim();
+  if (rawHTML.startsWith("```")) {
+    rawHTML = rawHTML.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '');
+  }
+
+  const container = document.getElementById('notes-container');
+  container.innerHTML = rawHTML;
+
+  // Animate words
+  const elements = container.querySelectorAll('*');
+  let delay = 0;
+  elements.forEach(el => {
+    if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+      const text = el.innerText;
+      el.innerHTML = '';
+      text.split(/(\s+)/).forEach(word => {
+        const span = document.createElement('span');
+        span.textContent = word;
+        span.className = 'word';
+        el.appendChild(span);
+        setTimeout(() => span.classList.add('visible'), delay);
+        delay += 30;
+      });
+    }
+  });
+
+  // Download as PDF
+  document.getElementById('download-btn').onclick = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const marginLeft = 40;
+    const marginTop = 60;
+    const lineHeight = 18;
+    const pageHeight = doc.internal.pageSize.height;
+    const maxLineWidth = doc.internal.pageSize.width - marginLeft * 2;
+
+    const text = container.innerText;
+    const lines = doc.splitTextToSize(text, maxLineWidth);
+
+    let y = marginTop;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+
+    lines.forEach(line => {
+      if (y > pageHeight - 40) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text(line, marginLeft, y);
+      y += lineHeight;
+    });
+
+    doc.save('AI_Notes.pdf');
+  };
+
+  // Show loading when quiz starts
+  function startQuizLoading() {
+    const quizBtn = document.getElementById('quiz-btn');
+    const loadingText = document.getElementById('quiz-loading');
+
+    quizBtn.disabled = true;
+    quizBtn.innerText = 'Generating Quiz...';
+    loadingText.style.display = 'block';
+  }
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+

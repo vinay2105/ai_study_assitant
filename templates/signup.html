@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - StudyAssistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.12);
+            padding: 30px 25px;
+            border-radius: 18px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+            backdrop-filter: blur(15px);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        .form-container h2 {
+            margin-bottom: 5px;
+            font-size: 24px;
+            color: #ffeb3b;
+        }
+
+        .form-container p {
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #f0f0f0;
+        }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 92%;
+            padding: 10px;
+            margin: 7px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            background: rgba(255,255,255,0.25);
+        }
+
+        input::placeholder { color: #ccc; font-size: 13px; }
+
+        .password-hint {
+            font-size: 11px;
+            color: #ffd600;
+            margin-top: -2px;
+            margin-bottom: 8px;
+        }
+
+        button {
+            width: 94%;
+            padding: 11px;
+            font-size: 14px;
+            background: #ffeb3b;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover { background: #ffd600; transform: scale(1.04); }
+
+        .alt-link {
+            display: block;
+            margin-top: 10px;
+            color: #fff;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .alt-link:hover { color: #ffeb3b; text-decoration: underline; }
+
+        .error {
+            color: #ff5252;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* Responsive */
+        @media(max-width: 480px) {
+            .form-container {
+                max-width: 85%;
+                padding: 25px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Create Account</h2>
+        <p>Sign up to access StudyAssistant and boost your learning</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email" required>
+
+            <input type="password" name="password1" placeholder="Password" required>
+            <div class="password-hint">At least 8 characters</div>
+
+            <input type="password" name="password2" placeholder="Confirm Password" required>
+
+            {% if form.errors %}
+                <div class="error">Please check the highlighted fields.</div>
+            {% endif %}
+
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <a href="{% url 'login' %}" class="alt-link">Already have an account? Login</a>
+    </div>
+</body>
+</html>
+
+
