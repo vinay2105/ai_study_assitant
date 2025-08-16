@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}Results · StudyAssistant{% endblock %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7;
+    --muted:#bfc6d0;
+    --bg1:#0f1527;
+    --panel:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b;
+    --accent-2:#ffd600;
+  }
+
+  body{background:radial-gradient(1100px 520px at 15% -10%, #223a78 0%, transparent 60%), linear-gradient(135deg,#111827,#0b1020 60%);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
+  .wrap{min-height:calc(100vh - 65px);display:flex;justify-content:center;align-items:flex-start;padding:64px 16px 40px}
+  .card{max-width:1020px;width:100%;background:var(--panel);border:1px solid var(--border);border-radius:18px;
+        box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);backdrop-filter:blur(14px);animation:fade .45s ease}
+
+  header{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+  .h-left{display:flex;align-items:center;gap:12px}
+  .glow-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h2{margin:0;font-weight:800;letter-spacing:.3px;color:var(--accent);text-shadow:0 0 10px rgba(255,235,59,.4)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap}
+  .ghost, .solid{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;font-weight:700;border-radius:12px;padding:10px 14px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease
+  }
+  .ghost{background:transparent;border:1px dashed rgba(255,255,255,.35);color:#fff}
+  .ghost:hover{transform:translateY(-1px);border-color:#fff}
+  .solid{background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1b1b1b;border:1px solid rgba(0,0,0,.15);box-shadow:0 8px 20px rgba(255,235,59,.35)}
+  .solid:hover{transform:translateY(-1px) scale(1.01)}
+
+  .body{padding:16px 18px 22px}
+
+  /* Table styling */
+  table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  thead th{text-align:left;padding:10px 12px;color:var(--accent);font-weight:800;border-bottom:1px solid rgba(255,255,255,.18)}
+  tbody tr{background:rgba(255,255,255,.05);border:1px solid var(--border);transition:transform .15s ease, box-shadow .15s ease}
+  tbody tr:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+  td{text-align:left;padding:12px 14px}
+  tbody tr td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+  tbody tr td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+  .me{outline:2px solid var(--accent);box-shadow:0 0 12px rgba(255,235,59,.6)}
+  .rank-pill{
+    display:inline-grid;place-items:center;min-width:42px;height:34px;border-radius:10px;
+    background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));
+    color:var(--accent);font-weight:800;border:1px solid var(--border)
+  }
+  .pill{display:inline-block;background:rgba(255,235,59,.15);border:1px solid rgba(255,235,59,.5);color:var(--accent);border-radius:999px;padding:6px 12px;font-weight:800}
+  .meta{color:var(--muted);font-size:12px;opacity:.95;margin-top:8px}
+
+  /* Header stats row */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0 6px}
+  .stat{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+  .stat .label{font-size:12px;color:var(--muted)}
+  .stat .value{font-size:20px;font-weight:800;color:var(--ink)}
+
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Print tweaks */
+  @media print{
+    body{background:#fff}
+    .wrap{padding:0}
+    .card{box-shadow:none;border:none}
+    .btns{display:none}
+  }
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="glow-dot"></span>
+        <h2>Results — {{ quiz.title }}</h2>
+      </div>
+      <div class="btns">
+        <button class="ghost" onclick="window.print()">🖨️ Print / Save PDF</button>
+        {% if quiz.room_code %}
+          <a class="solid" href="{% url 'quiz_results_pdf' room_code=quiz.room_code %}">⬇️ Download PDF</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- quick stats (client computed from table for simplicity) -->
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Participants</div>
+          <div class="value" id="stat-participants">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Top Score</div>
+          <div class="value" id="stat-top">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Your Rank</div>
+          <div class="value" id="stat-rank">—</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px">Rank</th>
+            <th>Name</th>
+            <th style="width:140px">Score</th>
+            <th style="width:160px">Time</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+          {% for r in results %}
+            <tr class="{% if r.is_me %}me{% endif %}">
+              <td><span class="rank-pill">#{{ r.rank }}</span></td>
+              <td>{{ r.participant.name }}</td>
+              <td><span class="pill">{{ r.score }}</span></td>
+              <td>{% if r.time_taken %}{{ r.time_taken }}{% else %}—{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="meta">No results yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="meta">Ties are broken by faster time taken.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const resultsUrl = "{% url 'quiz_results_data' room_code=quiz.room_code %}";
+  const tbody = document.getElementById("results-body");
+
+  function updateStatsFromDOM(){
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const dataRows = rows.filter(r => !r.querySelector(".meta"));
+    const participants = dataRows.length;
+    const scores = dataRows.map(r => {
+      const pill = r.querySelector(".pill");
+      return pill ? Number(pill.textContent.trim()) : 0;
+    }).filter(n => !isNaN(n));
+    const top = scores.length ? Math.max(...scores) : "—";
+    const meRow = tbody.querySelector(".me");
+    const myRank = meRow ? meRow.querySelector(".rank-pill").textContent.replace('#','') : "—";
+
+    document.getElementById("stat-participants").textContent = participants || "—";
+    document.getElementById("stat-top").textContent = top;
+    document.getElementById("stat-rank").textContent = myRank;
+  }
+
+  function updateResults() {
+    fetch(resultsUrl, {credentials: 'same-origin'})
+      .then(r => r.json())
+      .then(data => {
+        tbody.innerHTML = "";
+        if (!data.results || data.results.length === 0) {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td colspan="4" class="meta">No results yet.</td>`;
+          tbody.appendChild(row);
+          updateStatsFromDOM();
+          return;
+        }
+
+        data.results.forEach(r => {
+          const row = document.createElement("tr");
+          if (r.is_me) row.classList.add("me");
+          row.innerHTML = `
+            <td><span class="rank-pill">#${r.rank}</span></td>
+            <td>${r.name}</td>
+            <td><span class="pill">${r.score}</span></td>
+            <td>${r.time_taken || "—"}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        updateStatsFromDOM();
+      })
+      .catch(err => console.error("Error updating results:", err));
+  }
+
+  // initial load + polling every 2s
+  updateResults();
+  setInterval(updateResults, 2000);
+</script>
+{% endblock %}
+
+
+

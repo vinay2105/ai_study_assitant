@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'users',
     'notes',
     'quizzes',
+    'generate_quiz',
 ]
 
 # --- Middleware ---

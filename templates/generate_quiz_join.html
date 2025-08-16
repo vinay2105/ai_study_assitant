@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Join Quiz · StudyAssistant{% endblock %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7; --muted:#bfc6d0;
+    --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b; --accent-2:#ffd600;
+  }
+
+  body{
+    background:
+      radial-gradient(1100px 520px at 15% -10%, #223a78 0%, transparent 60%),
+      linear-gradient(135deg,#111827,#0b1020 60%);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink)
+  }
+
+  .wrap{min-height:calc(100vh - 65px);display:flex;justify-content:center;align-items:center;padding:72px 16px}
+  .card{
+    width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);border-radius:20px;
+    box-shadow:0 18px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(14px);padding:24px 22px;animation:fade .45s ease; position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; inset:-60% -60% auto auto; width:220%; height:220%;
+    background:conic-gradient(from 0deg,#ffeb3b,#ffd600,#ffeb3b); opacity:.05; animation:spin 12s linear infinite;
+  }
+  .card > *{position:relative; z-index:1}
+
+  h2{margin:0 0 14px;font-weight:800;letter-spacing:.3px;color:var(--accent);text-align:center;text-shadow:0 0 10px rgba(255,235,59,.4)}
+  label{display:block;margin:10px 0 6px;color:var(--accent);font-size:13px;text-shadow:0 0 6px rgba(255,235,59,.35)}
+
+  /* Name input */
+  .input{
+    width:100%;padding:12px 14px;font-size:14px;color:#fff;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.12);border-radius:12px;outline:none;transition:.2s ease;
+  }
+  .input:focus{
+    background:rgba(255,255,255,.16);box-shadow:0 0 12px rgba(255,235,59,.45), inset 0 0 6px rgba(0,0,0,.25);
+    transform:translateY(-1px);
+  }
+
+  /* Code boxes */
+  .code-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:8px 0 4px}
+  .code-box{
+    width:100%;aspect-ratio:1/1;border-radius:12px;border:1px solid rgba(255,255,255,.2);
+    background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));
+    color:#fff;font-size:22px;font-weight:800;text-align:center;outline:none;transition:.2s ease;
+  }
+  .code-box:focus{box-shadow:0 0 16px rgba(255,235,59,.45);border-color:rgba(255,255,255,.4);transform:translateY(-1px)}
+  .code-hint{color:var(--muted);font-size:12px;text-align:center;margin-bottom:8px}
+
+  /* Buttons */
+  .btn{
+    margin-top:16px;width:100%;padding:12px 16px;border:none;border-radius:12px;font-weight:900;cursor:pointer;
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1b1b1b;
+    box-shadow:0 10px 22px rgba(255,235,59,.35);transition:.18s ease;border:1px solid rgba(0,0,0,.15)
+  }
+  .btn:hover{transform:translateY(-1px) scale(1.01)}
+
+  .tip{margin-top:12px;color:var(--muted);font-size:12px;text-align:center}
+
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Print-safe */
+  @media print{
+    body{background:#fff}
+    .card{box-shadow:none}
+  }
+</style>
+
+<div class="wrap">
+  <form class="card" method="POST" action="{% url 'generate_quiz_join' %}" id="joinForm">
+    {% csrf_token %}
+    <h2>Join Quiz</h2>
+
+    <!-- Room Code -->
+    <label>Room Code</label>
+    <div class="code-grid" id="codeGrid">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 1">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5">
+      <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6">
+    </div>
+    <div class="code-hint">Type or paste your 6-digit code. It will auto-advance.</div>
+    <!-- Hidden field actually submitted -->
+    <input type="hidden" name="room_code" id="room_code">
+
+    <!-- Name -->
+    <label>Your Name</label>
+    <input class="input" type="text" name="name" placeholder="How should we show you?" maxlength="40">
+
+    <button class="btn" type="submit">Enter Lobby</button>
+    <div class="tip">Ask the creator for the room code.</div>
+
+    <noscript>
+      <!-- Fallback if JS disabled -->
+      <div style="margin-top:12px">
+        <label>Room Code (fallback)</label>
+        <input class="input" type="text" name="room_code" maxlength="6" pattern="\\d{6}" placeholder="123456">
+      </div>
+    </noscript>
+  </form>
+</div>
+
+<script>
+  (function(){
+    const boxes = Array.from(document.querySelectorAll('.code-box'));
+    const hidden = document.getElementById('room_code');
+    const form = document.getElementById('joinForm');
+
+    // Keep only digits in a box
+    function clean(v){ return (v || '').replace(/\D/g,'').slice(0,1); }
+
+    // Combine boxes -> hidden
+    function syncHidden(){
+      hidden.value = boxes.map(b => b.value || '').join('');
+    }
+
+    // Auto-advance / backspace behavior
+    boxes.forEach((box, idx) => {
+      box.addEventListener('input', (e) => {
+        box.value = clean(box.value);
+        // paste handling: if more than one char pasted, distribute
+        const data = (e.data || '').replace(/\D/g,'');
+        if (data && data.length > 1) {
+          // distribute across boxes starting at idx
+          let k = 0;
+          for (let i = idx; i < boxes.length && k < data.length; i++, k++) {
+            boxes[i].value = data[k];
+          }
+        }
+        // move forward if filled
+        if (box.value && idx < boxes.length - 1) boxes[idx+1].focus();
+        syncHidden();
+      });
+
+      box.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if (key === 'Backspace' && !box.value && idx > 0) {
+          boxes[idx-1].focus();
+          boxes[idx-1].value = '';
+          e.preventDefault();
+          syncHidden();
+        }
+        // allow left/right navigation
+        if (key === 'ArrowLeft' && idx > 0) { boxes[idx-1].focus(); e.preventDefault(); }
+        if (key === 'ArrowRight' && idx < boxes.length-1) { boxes[idx+1].focus(); e.preventDefault(); }
+      });
+    });
+
+    // On submit: validate length
+    form.addEventListener('submit', (e) => {
+      syncHidden();
+      if (hidden.value.length !== 6) {
+        e.preventDefault();
+        // focus first empty box
+        const empty = boxes.find(b => !b.value);
+        (empty || boxes[0]).focus();
+      }
+    });
+
+    // Focus first box on load
+    if (boxes[0]) boxes[0].focus();
+  })();
+</script>
+{% endblock %}
+

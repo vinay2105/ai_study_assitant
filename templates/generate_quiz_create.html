@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Create Quiz · StudyAssistant{% endblock %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7; --muted:#bfc6d0;
+    --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b; --accent-2:#ffd600;
+  }
+
+  body{
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #223a78 0%, transparent 60%),
+      linear-gradient(135deg,#111827,#0b1020 60%);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink);
+    margin:0; padding:0;
+  }
+  .wrap{min-height:calc(100vh - 65px);display:flex;justify-content:center;align-items:flex-start;padding:76px 16px 40px}
+  .card{
+    position:relative; max-width:1040px; width:100%;
+    background:var(--panel); border:1px solid var(--border); border-radius:20px;
+    box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(14px); overflow:hidden; animation:pop .45s ease;
+  }
+  .card::before{
+    content:""; position:absolute; inset:-60% -60% auto auto; width:220%; height:220%;
+    background:conic-gradient(from 0deg,#ffeb3b,#ffd600,#ffeb3b); opacity:.05; animation:spin 12s linear infinite;
+  }
+  .card > *{position:relative; z-index:1}
+
+  header{
+    display:flex; gap:14px; align-items:center; justify-content:space-between;
+    padding:18px 22px; border-bottom:1px solid var(--border);
+  }
+  .h-left{display:flex; align-items:center; gap:12px}
+  .glow-dot{width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent)}
+  h2{margin:0; font-weight:800; letter-spacing:.3px; color:var(--accent); text-shadow:0 0 10px rgba(255,235,59,.4)}
+  .subtle{color:var(--muted); font-size:12px}
+
+  .grid{display:grid; grid-template-columns:1.1fr .9fr; gap:18px; padding:18px; flex-wrap:wrap}
+  @media(max-width:960px){.grid{grid-template-columns:1fr}}
+
+  .panel{
+    background:rgba(255,255,255,.05); border:1px solid var(--border);
+    border-radius:16px; padding:16px; position:relative;
+  }
+  .panel h3{
+    margin:0 0 12px; color:var(--accent); font-size:15px; letter-spacing:.3px;
+    text-shadow:0 0 6px rgba(255,235,59,.5);
+  }
+  label{display:block; font-size:13px; color:var(--accent); margin:10px 0 6px; text-shadow:0 0 6px rgba(255,235,59,.35)}
+
+  /* Inputs */
+  input[type=text], input[type=number], textarea{
+    width:100%; padding:12px 14px; font-size:13px; color:#fff;
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; outline:none; box-shadow:inset 0 0 6px rgba(0,0,0,.25); transition:.25s;
+  }
+  textarea{min-height:130px; resize:vertical}
+  input:focus, textarea:focus{
+    background:rgba(255,255,255,.16);
+    box-shadow:0 0 12px rgba(255,235,59,.45), inset 0 0 6px rgba(0,0,0,.25);
+    transform:translateY(-1px);
+  }
+
+  /* File drop zone */
+  .drop{
+    border:1px dashed rgba(255,255,255,.35); border-radius:14px; padding:16px;
+    display:grid; place-items:center; text-align:center; color:#eee;
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+    transition:.2s ease;
+  }
+  .drop:hover{border-color:#fff; transform:translateY(-1px)}
+  .drop.drag{border-color:var(--accent); box-shadow:0 0 16px rgba(255,235,59,.45)}
+  .drop .note-mini{font-size:12px; color:var(--muted)}
+  .hidden-input{display:none}
+
+  /* Progress bar */
+  .bar{height:8px; background:rgba(255,255,255,.1); border-radius:999px; overflow:hidden}
+  .bar > span{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--accent-2),var(--accent)); box-shadow:0 0 14px rgba(255,235,59,.55)}
+
+  /* Select (pretty) */
+  .select-wrap{position:relative}
+  .pretty-select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    width:100%; padding:12px 36px 12px 12px; font-size:13px; color:#fff;
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+    border:1px solid rgba(255,255,255,.12); border-radius:12px; outline:none;
+    box-shadow:inset 0 0 6px rgba(0,0,0,.25), 0 0 0 0 rgba(255,235,59,0);
+    transition:box-shadow .25s, transform .2s, background .25s, border-color .2s;
+  }
+  .pretty-select:hover{background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.10)); transform:translateY(-1px); border-color:rgba(255,255,255,.2)}
+  .pretty-select:focus{box-shadow:0 0 14px rgba(255,235,59,.55), inset 0 0 6px rgba(0,0,0,.25)}
+  .select-caret{position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--accent); font-weight:900; filter:drop-shadow(0 0 6px rgba(255,235,59,.6))}
+  .pretty-select option{background-color:#1f1f1f; color:#fff}
+  .pretty-select option:checked{background-color:#3a3a3a; color:var(--accent); font-weight:700}
+
+  .row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px}
+
+  /* Notes */
+  .note{
+    margin-top:10px; background:rgba(255,235,59,.12); border:1px solid rgba(255,235,59,.4);
+    padding:10px; border-radius:12px; color:var(--accent); font-size:12px;
+  }
+
+  /* Buttons */
+  .btns{display:flex; gap:12px; align-items:center; margin-top:14px}
+  .btn{padding:12px 16px; border:none; border-radius:12px; font-weight:800; cursor:pointer; transition:.2s ease}
+  .btn-primary{background:linear-gradient(180deg,var(--accent-2),var(--accent)); color:#1b1b1b; box-shadow:0 8px 20px rgba(255,235,59,.35); border:1px solid rgba(0,0,0,.15)}
+  .btn-primary:hover{transform:translateY(-1px) scale(1.01)}
+  .btn-ghost{background:transparent; color:#fff; border:1px dashed rgba(255,255,255,.35)}
+  .btn-ghost:hover{border-color:#fff; transform:translateY(-1px)}
+
+  /* Checkbox */
+  .check{display:flex; gap:10px; align-items:center; margin-top:8px; color:#eee}
+
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="glow-dot"></span>
+        <h2>Create Quiz (AI-powered)</h2>
+      </div>
+      <div class="subtle">Upload your notes and customize quiz parameters.</div>
+    </header>
+
+    <form method="POST" enctype="multipart/form-data" onsubmit="return startGen(this)">
+      {% csrf_token %}
+      <div class="grid">
+        <!-- Notes Source -->
+        <section class="panel">
+          <h3>Notes Source</h3>
+
+          <label>Upload Notes (PDF or TXT)</label>
+          <div id="drop" class="drop">
+            <div>
+              <div style="font-weight:800;margin-bottom:4px">Drag & drop file here</div>
+              <div class="note-mini">or click to choose a file</div>
+            </div>
+            <input class="hidden-input" id="fileInput" type="file" name="notes_file" accept=".pdf,.txt">
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin:10px 0;color:#eee">
+            <div class="bar" style="flex:1"><span id="bar"></span></div>
+            <div class="subtle" id="barLabel">0%</div>
+          </div>
+
+          <label>Or Paste Notes Text</label>
+          <textarea name="notes_text" placeholder="Paste clean text here (useful for short notes)…"></textarea>
+
+          <div class="note">⚠️ Avoid handwritten scans and giant files. For long PDFs, split chapters for higher-quality questions.</div>
+        </section>
+
+        <!-- Quiz Settings -->
+        <section class="panel">
+          <h3>Quiz Settings</h3>
+
+          <label>Title</label>
+          <input type="text" name="title" value="{{ form.title.value|default:'' }}" placeholder="e.g., Thermodynamics Quiz">
+
+          <div class="row">
+            <div>
+              <label>Difficulty (1–5)</label>
+              <div class="select-wrap">
+                <select name="difficulty" class="pretty-select">
+                  {% for v,l in form.fields.difficulty.choices %}
+                    <option value="{{ v }}" {% if form.difficulty.value == v|stringformat:"s" %}selected{% endif %}>{{ l }}</option>
+                  {% endfor %}
+                </select>
+                <span class="select-caret">▾</span>
+              </div>
+            </div>
+            <div>
+              <label>Duration (minutes)</label>
+              <input type="number" min="1" max="180" name="duration" value="{{ form.duration.value|default:20 }}">
+            </div>
+            <div>
+              <label>Number of Questions</label>
+              <input type="number" min="5" max="100" name="num_questions" value="{{ form.num_questions.value|default:10 }}">
+            </div>
+          </div>
+
+          <label>Topic Focus (optional)</label>
+          <input type="text" name="topic_focus" value="{{ form.topic_focus.value|default:'' }}" placeholder="e.g., ‘First Law’, ‘Entropy’">
+
+          <label class="check">
+            <input type="checkbox" name="creator_participates"> Creator will participate
+          </label>
+
+          <div class="btns">
+            <button class="btn btn-primary" type="submit" id="submitBtn">Generate Quiz</button>
+            <button class="btn btn-ghost" type="reset">Reset</button>
+          </div>
+
+          <div id="loading" class="subtle" style="display:none;margin-top:10px">Generating with Gemini… please wait ⏳</div>
+        </section>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // --- Elements
+  const drop = document.getElementById('drop');
+  const fileInput = document.getElementById('fileInput');
+  const bar = document.getElementById('bar');
+  const barLabel = document.getElementById('barLabel');
+
+  // --- Click to open file chooser
+  drop.addEventListener('click', () => fileInput.click());
+
+  // --- Drag & drop handlers
+  ;['dragenter','dragover'].forEach(evt =>
+    drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('drag'); })
+  );
+  ;['dragleave','drop'].forEach(evt =>
+    drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); })
+  );
+  drop.addEventListener('drop', e => {
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) fileInput.files = e.dataTransfer.files;
+    fakeProgress();
+  });
+
+  // --- When chosen via dialog
+  fileInput.addEventListener('change', fakeProgress);
+
+  // --- Simple fake progress for UX (real progress needs XHR upload)
+  function fakeProgress(){
+    let p=0; bar.style.width='0%'; barLabel.textContent='0%';
+    const t=setInterval(()=>{ p+=7+Math.random()*9; if(p>=100){p=100;clearInterval(t)}
+      bar.style.width=p.toFixed(0)+'%'; barLabel.textContent=p.toFixed(0)+'%';
+    },80);
+  }
+
+  // --- Submit state
+  function startGen(form){
+    const btn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    loading.style.display = 'block';
+    return true;
+  }
+</script>
+{% endblock %}
+
+
+

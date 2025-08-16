@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% block title %}Lobby · StudyAssistant{% endblock %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7;
+    --muted:#bfc6d0;
+    --panel:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b;
+    --accent-2:#ffd600;
+  }
+
+  body{
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #223a78 0%, transparent 60%),
+      linear-gradient(135deg,#111827,#0b1020 60%);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink)
+  }
+  .wrap{min-height:calc(100vh - 65px);display:flex;justify-content:center;align-items:flex-start;padding:76px 16px 40px}
+  .card{
+    max-width:1040px;width:100%;background:var(--panel);border:1px solid var(--border);
+    border-radius:20px;box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(14px);animation:pop .45s ease
+  }
+
+  header{
+    display:flex;gap:14px;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--border)
+  }
+  .h-left{display:flex;align-items:center;gap:12px}
+  .glow-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h2{margin:0;font-weight:800;letter-spacing:.3px;color:var(--accent);text-shadow:0 0 10px rgba(255,235,59,.4)}
+
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .code{
+    display:flex;gap:10px;align-items:center;
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));
+    border:1px solid var(--border);border-radius:12px;padding:10px 12px
+  }
+  .code b{color:var(--accent);letter-spacing:2px;font-size:16px;text-shadow:0 0 8px rgba(255,235,59,.4)}
+
+  .ghost,.danger,.start{
+    display:inline-flex;align-items:center;gap:8px;font-weight:800;border-radius:12px;
+    padding:10px 14px;cursor:pointer;text-decoration:none;transition:.18s ease;
+    border:1px solid transparent
+  }
+  .ghost{background:transparent;border:1px dashed rgba(255,255,255,.35);color:#fff}
+  .ghost:hover{transform:translateY(-1px);border-color:#fff}
+  .danger{background:rgba(244,67,54,.15);border:1px solid rgba(244,67,54,.55);color:#ffbdb8}
+  .danger:hover{background:rgba(244,67,54,.22)}
+  .start{background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1b1b1b;border:1px solid rgba(0,0,0,.15);box-shadow:0 8px 20px rgba(255,235,59,.35)}
+  .start:hover{transform:translateY(-1px) scale(1.01)}
+
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;padding:16px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+
+  .panel{
+    background:rgba(255,255,255,.05);border:1px solid var(--border);
+    border-radius:16px;padding:16px;position:relative;overflow:hidden
+  }
+  .panel h3{margin:0 0 12px;color:var(--accent);font-size:15px;display:flex;align-items:center;gap:8px;text-shadow:0 0 6px rgba(255,235,59,.5)}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 1.4s infinite}
+
+  /* Participants list */
+  .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .p{
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    border:1px solid var(--border);border-radius:14px;padding:12px;color:#fff;
+    transition:.2s ease;position:relative
+  }
+  .p:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+  .p .top{display:flex;align-items:center;gap:10px}
+  .avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.08));
+    border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+    font-weight:900;letter-spacing:.5px;color:var(--accent);text-shadow:0 0 6px rgba(255,235,59,.5)
+  }
+  .name{font-weight:800}
+  .meta{color:#eee;font-size:12px;opacity:.95;margin-top:4px}
+  .pill{
+    display:inline-block;margin-left:6px;background:rgba(255,235,59,.18);
+    border:1px solid rgba(255,235,59,.55);color:var(--accent);
+    border-radius:999px;padding:3px 8px;font-size:11px
+  }
+  .kbd{
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+    border-radius:6px;padding:2px 6px
+  }
+
+  .hint{color:#fff;opacity:.92;font-size:13px;margin-top:10px}
+  .hint small{opacity:.85}
+
+  /* Overlay */
+  .overlay{position:fixed;inset:0;background:rgba(10,10,10,.7);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:9999}
+  .overlay .box{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:20px 24px;color:#fff;max-width:520px;text-align:center}
+  .overlay h4{margin:0 0 6px;color:var(--accent)}
+  .overlay p{margin:0}
+
+  /* Animations */
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%{transform:scale(.9);opacity:.8}50%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:.8}}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="glow-dot"></span>
+        <h2>Lobby — {{ quiz.title }}</h2>
+      </div>
+
+      <div class="header-right">
+        <div class="code">
+          <span>Room:</span> <b id="room">{{ quiz.room_code }}</b>
+          <button class="ghost" type="button" onclick="copyCode()">Copy</button>
+        </div>
+
+        {% if user_is_participant %}
+          <form id="leave-form" action="{% url 'leave_quiz' room_code=quiz.room_code %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="intent" value="leave">
+            <button type="submit" class="danger" id="leave-btn">
+              {% if user_is_creator %}End & Leave{% else %}Leave{% endif %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Participants -->
+      <section class="panel">
+        <h3><span class="live-dot"></span> Live Participants (<span id="p-count">{{ participants|length }}</span>)</h3>
+        <div id="participant-list" class="list">
+          {% for p in participants %}
+            <div class="p">
+              <div class="top">
+                <div class="avatar">{{ p.name|first|upper }}</div>
+                <div>
+                  <div class="name">
+                    {{ p.name }}
+                    {% if p.user_id == quiz.creator_id %}<span class="pill">Creator</span>{% endif %}
+                  </div>
+                  <div class="meta">Joined: {{ p.joined_at|date:"H:i:s" }}</div>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="meta">No one has joined yet. Share the room code.</div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Right: Share + Tips + Start -->
+      <section class="panel">
+        <h3>How to Join</h3>
+        <div class="hint">
+          Share the room code with your students. They can open the Join page and enter
+          <span class="kbd">{{ quiz.room_code }}</span> to appear here instantly.
+        </div>
+        <div class="hint" style="margin-top:8px">
+          <small>Tip: keep this tab open. The list updates live every ~1s and auto-redirects when you start the quiz.</small>
+        </div>
+
+        {% if user_is_creator %}
+          <form action="{% url 'start_quiz' room_code=quiz.room_code %}" method="post" style="margin-top:16px">
+            {% csrf_token %}
+            <button class="start" type="submit">Start Quiz</button>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Abort / Leave overlay -->
+<div class="overlay" id="abort-overlay" role="dialog" aria-modal="true">
+  <div class="box">
+    <h4 id="abort-title">Quiz ended</h4>
+    <p id="abort-msg">The creator has left. This quiz was aborted.</p>
+  </div>
+</div>
+
+<script>
+  function qs(id){return document.getElementById(id)}
+  function copyCode() {
+    const v = qs('room').textContent.trim();
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(v);
+    } else {
+      // fallback for non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = v; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  const statusUrl = "{% url 'quiz_lobby_status' room_code=quiz.room_code %}";
+  let inflight = false;
+  let keepPolling = true;
+
+  function showAbort(title, msg){
+    const o = qs('abort-overlay');
+    if (!o) return;
+    qs('abort-title').textContent = title || 'Quiz ended';
+    qs('abort-msg').textContent = msg || 'The creator has left. This quiz was aborted.';
+    o.style.display = 'flex';
+  }
+
+  function formatTime(iso) {
+    try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+    catch { return '--:--:--'; }
+  }
+
+  function renderParticipants(listEl, participants) {
+    listEl.innerHTML = '';
+    (participants || []).forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'p';
+      const initials = (p.name || '?').trim().charAt(0).toUpperCase();
+      card.innerHTML = `
+        <div class="top">
+          <div class="avatar">${initials}</div>
+          <div>
+            <div class="name">${p.name}${p.is_creator ? ' <span class="pill">Creator</span>' : ''}</div>
+            <div class="meta">Joined: ${p.joined_at ? formatTime(p.joined_at) : '--:--:--'}</div>
+          </div>
+        </div>
+      `;
+      listEl.appendChild(card);
+    });
+
+    if ((participants || []).length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'meta';
+      empty.textContent = 'No one has joined yet. Share the room code.';
+      listEl.appendChild(empty);
+    }
+  }
+
+  function poll() {
+    if (!keepPolling || inflight) return;
+    inflight = true;
+
+    fetch(statusUrl, {credentials: 'same-origin'})
+      .then(r => r.json())
+      .then(data => {
+        if (data.quiz_aborted) {
+          showAbort('Quiz ended', 'The creator has left. This quiz was aborted.');
+          keepPolling = false;
+          if (data.redirect) setTimeout(() => { window.location = data.redirect; }, 1200);
+          return;
+        }
+
+        if (data.quiz_started && data.quiz_url) {
+          keepPolling = false;
+          window.location.replace(data.quiz_url);
+          return;
+        }
+
+        const list = qs('participant-list');
+        const count = qs('p-count');
+        if (list) {
+          renderParticipants(list, data.participants || []);
+          if (count) count.textContent = (data.participants || []).length;
+        }
+      })
+      .catch(() => { /* ignore transient errors */ })
+      .finally(() => {
+        inflight = false;
+        if (keepPolling) setTimeout(poll, 1000);
+      });
+  }
+
+  // Kick off polling
+  poll();
+</script>
+{% endblock %}
+
+
+
+

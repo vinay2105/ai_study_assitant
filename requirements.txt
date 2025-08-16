@@ -10,4 +10,5 @@ langchain-google-genai
 langchain_community
 faiss-cpu
 beautifulsoup4
+reportlab
 

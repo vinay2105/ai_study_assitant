@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% block title %}Quiz · StudyAssistant{% endblock %}
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7;
+    --muted:#bfc6d0;
+    --bg1:#0f1527;
+    --bg2:#16213e;
+    --panel:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b;
+    --accent-2:#ffd600;
+  }
+
+  body{background:radial-gradient(1200px 600px at 20% -10%, #223a78 0%, transparent 60%), linear-gradient(135deg,#111827,#0b1020 60%);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
+  .wrap{min-height:calc(100vh - 65px);display:flex;justify-content:center;align-items:flex-start;padding:64px 16px 40px}
+  .card{max-width:1020px;width:100%;background:var(--panel);border:1px solid var(--border);border-radius:18px;
+        box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);backdrop-filter:blur(14px);animation:fade .45s ease}
+  header{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+  .h-left{display:flex;align-items:center;gap:12px}
+  .glow-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h2{margin:0;font-weight:800;letter-spacing:.3px;color:var(--accent);text-shadow:0 0 10px rgba(255,235,59,.4)}
+  .timer{display:flex;align-items:center;gap:10px}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,235,59,.12);border:1px solid rgba(255,235,59,.5);
+        color:var(--accent);border-radius:999px;padding:8px 12px;font-weight:800;letter-spacing:.5px}
+  .progress{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+  .progress > span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-2),var(--accent));box-shadow:0 0 14px rgba(255,235,59,.55)}
+
+  .body{padding:18px 18px 22px}
+  .q{margin:14px 0;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:16px;padding:14px 14px 10px;transition:transform .2s, box-shadow .2s}
+  .q:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.35)}
+  .q-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .q-num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+         background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));color:var(--accent);font-weight:800;border:1px solid var(--border)}
+  .q-title{font-weight:700;color:var(--ink)}
+
+  .opts{display:grid;gap:10px;margin-top:6px}
+  .opts label{display:block;cursor:pointer}
+  .opts input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+  .opt{
+    position:relative;display:flex;align-items:center;gap:12px;
+    padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease
+  }
+  .opt .dot{
+    width:18px;height:18px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.35);display:inline-block;flex:0 0 auto;
+    box-shadow:inset 0 0 0 3px transparent, 0 0 0 0 rgba(255,235,59,0);
+    transition:all .2s ease
+  }
+  .opt-text{color:var(--ink);line-height:1.35}
+  .opt:hover{background:rgba(255,255,255,.1);transform:translateY(-1px);border-color:rgba(255,255,255,.25)}
+  .opts input:checked + .opt{
+    background:linear-gradient(180deg,rgba(255,235,59,.2),rgba(255,235,59,.12));
+    border-color:rgba(255,235,59,.6);
+    box-shadow:0 0 16px rgba(255,235,59,.35)
+  }
+  .opts input:checked + .opt .dot{
+    border-color:var(--accent);
+    box-shadow:inset 0 0 0 4px var(--accent), 0 0 10px rgba(255,235,59,.7)
+  }
+
+  .foot{padding:0 18px 18px}
+  .subtle{color:var(--muted);font-size:12px}
+
+  .overlay{position:fixed;inset:0;background:rgba(8,10,16,.75);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:9999}
+  .overlay .box{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:16px;padding:18px 22px;color:#fff;text-align:center}
+  .overlay h4{margin:0 0 6px;color:var(--accent)}
+  .kbd{display:inline-block;padding:2px 6px;border:1px solid rgba(255,255,255,.3);border-bottom-width:2px;border-radius:6px;font-size:12px;margin:0 2px;color:#eee}
+
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="glow-dot"></span>
+        <h2>{{ quiz.title }}</h2>
+      </div>
+      <div class="timer">
+        <div style="min-width:120px" class="pill">⏳ <span id="t">--:--</span></div>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="subtle" style="margin:0 2px 10px;">Answer all questions. Auto-submit when the timer hits zero.</div>
+      <div class="progress" aria-label="Progress">
+        <span id="pbar"></span>
+      </div>
+
+      <!-- Post to submit_quiz (server calculates & redirects to results) -->
+      <form id="quizForm" method="POST" action="{% url 'submit_quiz' room_code=quiz.room_code %}">
+        {% csrf_token %}
+        {% for q in questions %}
+          <div class="q">
+            <div class="q-head">
+              <div class="q-num">{{ forloop.counter }}</div>
+              <div class="q-title">{{ q.text }}</div>
+            </div>
+
+            <div class="opts">
+              <label>
+                <input type="radio" name="q_{{ q.id }}" value="A">
+                <div class="opt">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="opt-text">{{ q.option_a }}</div>
+                </div>
+              </label>
+              <label>
+                <input type="radio" name="q_{{ q.id }}" value="B">
+                <div class="opt">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="opt-text">{{ q.option_b }}</div>
+                </div>
+              </label>
+              <label>
+                <input type="radio" name="q_{{ q.id }}" value="C">
+                <div class="opt">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="opt-text">{{ q.option_c }}</div>
+                </div>
+              </label>
+              <label>
+                <input type="radio" name="q_{{ q.id }}" value="D">
+                <div class="opt">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="opt-text">{{ q.option_d }}</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        {% endfor %}
+        {# No visible submit button: strict auto-submit on timeout #}
+      </form>
+    </div>
+
+    <div class="foot">
+      <div class="subtle">Tips: Use keys <span class="kbd">A</span><span class="kbd">B</span><span class="kbd">C</span><span class="kbd">D</span> to select options. Page auto-submits on timeout.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Submitting overlay -->
+<div class="overlay" id="submitting">
+  <div class="box">
+    <h4>Time’s up</h4>
+    <div>Submitting your answers…</div>
+  </div>
+</div>
+
+<script>
+  // ====== TIMER ======
+  let remaining = Number("{{ remaining_seconds|default:0 }}");
+  const tEl = document.getElementById('t');
+  const form = document.getElementById('quizForm');
+  const overlay = document.getElementById('submitting');
+  let allowSubmit = false;
+
+  function fmt(s){
+    s = Math.max(0, s|0);
+    const m = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    return `${m}:${ss}`;
+  }
+  function autoSubmit(){
+    if (overlay) overlay.style.display = 'flex';
+    allowSubmit = true;
+    setTimeout(() => form.submit(), 200);
+  }
+  function tick(){
+    tEl.textContent = fmt(remaining);
+    if (remaining <= 0){ autoSubmit(); return; }
+    remaining--; setTimeout(tick, 1000);
+  }
+  tick();
+
+  // ====== BLOCK MANUAL SUBMIT / ENTER ======
+  form.addEventListener('submit', (e)=>{ if (!allowSubmit) e.preventDefault(); });
+  form.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') e.preventDefault(); });
+
+  // ====== PROGRESS BAR ======
+  const radios = Array.from(form.querySelectorAll('input[type=radio]'));
+  const pbar = document.getElementById('pbar');
+  const groups = [...new Set(radios.map(r => r.name))];
+  function recalcProgress(){
+    const answered = groups.filter(name => form.querySelector(`input[name="${name}"]:checked`)).length;
+    const pct = Math.round((answered / groups.length) * 100);
+    pbar.style.width = pct + '%';
+  }
+  radios.forEach(r => r.addEventListener('change', recalcProgress));
+  recalcProgress();
+
+  // ====== KEYBOARD SHORTCUTS (A/B/C/D) ======
+  const keyMap = { 'a':'A', 'b':'B', 'c':'C', 'd':'D' };
+  document.addEventListener('keydown', (e)=>{
+    const key = e.key.toLowerCase();
+    if (!(key in keyMap)) return;
+
+    // find the nearest visible question in viewport and mark that option
+    const qs = Array.from(document.querySelectorAll('.q'));
+    const y = window.scrollY;
+    const viewportMiddle = y + window.innerHeight * 0.35;
+    let nearest = qs[0], best = Infinity;
+    qs.forEach(q => {
+      const rect = q.getBoundingClientRect();
+      const mid = rect.top + window.scrollY + rect.height/2;
+      const d = Math.abs(mid - viewportMiddle);
+      if (d < best){ best = d; nearest = q; }
+    });
+
+    const letter = keyMap[key];
+    const input = nearest.querySelector(`input[type="radio"][value="${letter}"]`);
+    if (input){
+      input.checked = true;
+      input.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  });
+
+  // Safety: if the page becomes visible again after timeout, submit immediately
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && remaining <= 0) autoSubmit();
+  });
+</script>
+{% endblock %}
+
+

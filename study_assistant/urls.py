@@ -11,6 +11,7 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('notes/', include('notes.urls')),
     path('quizzes/', include('quizzes.urls')),
+    path('generate-quiz/', include('generate_quiz.urls')),
 ]
 
 if settings.DEBUG:
