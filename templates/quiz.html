@@ -1,78 +1,216 @@
 {% extends 'base.html' %}
-{% block title %}Quiz{% endblock %}
+{% block title %}Quiz · StudyAssistant{% endblock %}
 
 {% block content %}
 <style>
-  body { background: linear-gradient(135deg, #1e3c72, #2a5298); font-family: 'Open Sans', sans-serif; }
-  .quiz-container {
-    max-width: 800px; margin: 50px auto; background: rgba(255,255,255,0.05);
-    padding: 25px; border-radius: 16px; backdrop-filter: blur(15px);
-    box-shadow: 0 0 35px rgba(0,0,0,0.3); color: white;
-  }
-  h2 { text-align: center; color: #ffeb3b; text-shadow: 0 0 8px rgba(255,235,59,0.8); }
-  .question { margin: 20px 0; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 8px rgba(255,235,59,0.8);}
-  
-  .options { margin-bottom: 15px; }
-  .options label {
-    display: flex; align-items: center;
-    margin: 8px 0; padding: 0;
-    cursor: pointer; border-radius: 8px;
-    transition: 0.3s;
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7; --muted:#bfc6d0;
+    --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b; --accent-2:#ffd600;
   }
 
-  /* Hide radio but keep clickable */
-  .options input {
-    position: absolute;
-    opacity: 0;
+  body{
+    background:
+      radial-gradient(1100px 520px at 15% -10%, #223a78 0%, transparent 60%),
+      linear-gradient(135deg,#111827,#0b1020 60%);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink)
   }
 
-  .options span {
-    flex: 1;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.08);
-    transition: 0.3s;
-    box-shadow: 0 0 8px rgba(255,235,59,0.2);
+  .wrap{min-height:calc(100vh - 65px);padding:74px 16px 40px;display:flex;justify-content:center}
+  .card{
+    width:100%;max-width:980px;background:var(--panel);border:1px solid var(--border);border-radius:20px;
+    box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(14px);overflow:hidden;animation:fade .45s ease;position:relative
+  }
+  .card::before{
+    content:"";position:absolute;inset:-60% -60% auto auto;width:220%;height:220%;
+    background:conic-gradient(from 0deg,var(--accent),var(--accent-2),var(--accent));
+    opacity:.05;animation:spin 12s linear infinite
+  }
+  .card > *{position:relative;z-index:1}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:18px 22px;border-bottom:1px solid var(--border)
+  }
+  .h-left{display:flex;align-items:center;gap:12px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h2{margin:0;font-weight:800;letter-spacing:.3px;color:var(--accent);text-shadow:0 0 10px rgba(255,235,59,.45)}
+  .subtle{color:var(--muted);font-size:12px}
+
+  .progress{height:8px;background:rgba(255,255,255,.1);border-radius:999px;overflow:hidden}
+  .progress > span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-2),var(--accent));box-shadow:0 0 14px rgba(255,235,59,.55)}
+
+  .body{padding:18px}
+  .q{
+    margin:14px 0;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:16px;
+    padding:14px;transition:transform .2s, box-shadow .2s
+  }
+  .q:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+  .q-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .q-num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+         background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));color:var(--accent);font-weight:800;border:1px solid var(--border)}
+  .q-title{font-weight:700;color:var(--ink)}
+
+  .opts{display:grid;gap:10px}
+  .opts label{display:block;cursor:pointer}
+  .opts input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+  .opt{
+    position:relative;display:flex;align-items:center;gap:12px;
+    padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease
+  }
+  .opt .dot{
+    width:18px;height:18px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.35);display:inline-block;flex:0 0 auto;
+    box-shadow:inset 0 0 0 3px transparent, 0 0 0 0 rgba(255,235,59,0);
+    transition:all .2s ease
+  }
+  .opt-text{color:var(--ink);line-height:1.35}
+  .opt:hover{background:rgba(255,255,255,.1);transform:translateY(-1px);border-color:rgba(255,255,255,.25)}
+  .opts input:checked + .opt{
+    background:linear-gradient(180deg,rgba(255,235,59,.2),rgba(255,235,59,.12));
+    border-color:rgba(255,235,59,.6);box-shadow:0 0 16px rgba(255,235,59,.35)
+  }
+  .opts input:checked + .opt .dot{
+    border-color:var(--accent);
+    box-shadow:inset 0 0 0 4px var(--accent), 0 0 10px rgba(255,235,59,.7)
   }
 
-  .options input:checked + span {
-    background: rgba(255,235,59,0.3);
-    box-shadow: 0 0 12px rgba(255,235,59,0.6);
-    transform: scale(1.02);
+  .foot{padding:0 18px 18px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .btn{
+    padding:12px 16px;border:none;border-radius:12px;font-weight:900;cursor:pointer;transition:.18s ease
   }
+  .btn-primary{
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1b1b1b;border:1px solid rgba(0,0,0,.15);
+    box-shadow:0 10px 22px rgba(255,235,59,.35)
+  }
+  .btn-primary:hover{transform:translateY(-1px) scale(1.01)}
+  .hint{color:var(--muted);font-size:12px}
 
-  .options label:hover span {
-    background: rgba(255,235,59,0.2);
-    transform: scale(1.03);
-  }
-
-  .submit-btn {
-    display: block; margin: 25px auto 0; background: #ffeb3b; color: #333;
-    font-weight: bold; border-radius: 8px; padding: 10px 20px; text-decoration: none;
-    transition: 0.3s;
-  }
-  .submit-btn:hover { background: #ffd600; transform: scale(1.05); box-shadow: 0 0 12px rgba(255,235,59,0.6); }
+  .unanswered{outline:2px solid rgba(244,67,54,.6);box-shadow:0 0 14px rgba(244,67,54,.35)}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
-<div class="quiz-container">
-  <h2>✨ Your Quiz</h2>
-  <form method="post" action="{% url 'submit_quiz' %}">
-    {% csrf_token %}
-    {% for q in questions %}
-      <div class="question">{{ forloop.counter }}. {{ q.question }}</div>
-      <div class="options">
-        {% for opt in q.options %}
-          <label>
-            <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ opt }}">
-            <span>{{ opt }}</span>
-          </label>
-        {% endfor %}
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="dot"></span>
+        <h2>Quiz</h2>
       </div>
-    {% endfor %}
-    <button type="submit" class="submit-btn">Submit Quiz</button>
-  </form>
+      <div style="min-width:160px">
+        <div class="progress" aria-label="Progress">
+          <span id="pbar"></span>
+        </div>
+        <div class="subtle" id="ptext" style="margin-top:6px;text-align:right">0% answered</div>
+      </div>
+    </header>
+
+    <form id="quizForm" class="body" method="post" action="{% url 'submit_quiz' %}">
+      {% csrf_token %}
+      {% for q in questions %}
+        <div class="q" data-q="{{ forloop.counter0 }}">
+          <div class="q-head">
+            <div class="q-num">{{ forloop.counter }}</div>
+            <div class="q-title">{{ q.question }}</div>
+          </div>
+          <div class="opts">
+            {% for opt in q.options %}
+              <label>
+                <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ opt }}">
+                <div class="opt">
+                  <span class="dot" aria-hidden="true"></span>
+                  <div class="opt-text">{{ opt }}</div>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </form>
+
+    <div class="foot">
+      <div class="hint">Tip: Use keys <b>1–9</b> to select an option for the question nearest your view.</div>
+      <button type="button" class="btn btn-primary" id="submitBtn">Submit Quiz</button>
+    </div>
+  </div>
 </div>
+
+<script>
+  // Elements
+  const form = document.getElementById('quizForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const pbar = document.getElementById('pbar');
+  const ptext = document.getElementById('ptext');
+
+  // Collect radio groups
+  const radios = Array.from(form.querySelectorAll('input[type=radio]'));
+  const groupNames = [...new Set(radios.map(r => r.name))];
+
+  function recalcProgress(){
+    const answered = groupNames.filter(name => form.querySelector(`input[name="${name}"]:checked`)).length;
+    const pct = Math.round((answered / groupNames.length) * 100);
+    pbar.style.width = pct + '%';
+    ptext.textContent = `${pct}% answered`;
+    // remove unanswered highlight on change
+    form.querySelectorAll('.q.unanswered').forEach(q => {
+      const has = !!q.querySelector('input[type=radio]:checked');
+      if (has) q.classList.remove('unanswered');
+    });
+  }
+  radios.forEach(r => r.addEventListener('change', recalcProgress));
+  recalcProgress();
+
+  // Smooth scroll to first unanswered
+  function scrollToFirstUnanswered(){
+    for (const name of groupNames){
+      if (!form.querySelector(`input[name="${name}"]:checked`)){
+        const qIdx = parseInt(name.replace(/^q/, ''), 10);
+        const qEl = form.querySelector(`.q[data-q="${qIdx}"]`);
+        if (qEl){
+          qEl.classList.add('unanswered');
+          qEl.scrollIntoView({behavior:'smooth', block:'center'});
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Submit handler
+  submitBtn.addEventListener('click', () => {
+    if (!scrollToFirstUnanswered()) return;
+    form.submit();
+  });
+
+  // Keyboard shortcuts: numbers 1–9 select option in the nearest question
+  document.addEventListener('keydown', (e) => {
+    if (!/^[1-9]$/.test(e.key)) return;
+    const idx = parseInt(e.key, 10) - 1;
+
+    // find the question nearest to mid viewport
+    const qs = Array.from(document.querySelectorAll('.q'));
+    const viewportMiddle = window.scrollY + window.innerHeight * 0.35;
+    let nearest = qs[0], best = Infinity;
+    qs.forEach(q => {
+      const rect = q.getBoundingClientRect();
+      const mid = rect.top + window.scrollY + rect.height/2;
+      const d = Math.abs(mid - viewportMiddle);
+      if (d < best){ best = d; nearest = q; }
+    });
+
+    const radiosInQ = nearest.querySelectorAll('input[type=radio]');
+    if (idx >= radiosInQ.length) return;
+    radiosInQ[idx].checked = true;
+    radiosInQ[idx].dispatchEvent(new Event('change', {bubbles:true}));
+  });
+</script>
 {% endblock %}
+
 
 
 

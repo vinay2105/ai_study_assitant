@@ -1,84 +1,190 @@
 {% extends 'base.html' %}
-{% block title %}Quiz Result{% endblock %}
+{% block title %}Quiz Result · StudyAssistant{% endblock %}
 
 {% block content %}
 <style>
-  body { 
-    background: linear-gradient(135deg, #1e3c72, #2a5298); 
-    font-family: 'Open Sans', sans-serif; 
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  :root{
+    --ink:#e7e7e7; --muted:#bfc6d0;
+    --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14);
+    --accent:#ffeb3b; --accent-2:#ffd600;
+    --ok:#00e676; --bad:#ff5252;
   }
-  .result-card {
-    max-width: 900px; margin: 40px auto; 
-    background: rgba(255,255,255,0.05);
-    padding: 25px; border-radius: 16px; 
-    backdrop-filter: blur(15px);
-    text-align: center; color: white; 
-    box-shadow: 0 0 35px rgba(0,0,0,0.3);
+
+  body{
+    background:
+      radial-gradient(1100px 520px at 15% -10%, #223a78 0%, transparent 60%),
+      linear-gradient(135deg,#111827,#0b1020 60%);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink);
   }
-  .score {
-    font-size: 2rem; color: #ffeb3b; font-weight: bold;
-    text-shadow: 0 0 12px rgba(255,235,59,0.8);
-    margin-bottom: 30px;
+
+  .wrap{min-height:calc(100vh - 65px);padding:74px 16px 40px;display:flex;justify-content:center}
+  .card{
+    width:100%;max-width:1000px;background:var(--panel);border:1px solid var(--border);border-radius:20px;
+    box-shadow:0 15px 45px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(14px);overflow:hidden;animation:fade .45s ease;position:relative
   }
-  .question-block { 
-    text-align: left; margin-bottom: 25px; 
-    padding: 15px; border-radius: 12px; 
-    background: rgba(255,255,255,0.05);
+  .card::before{
+    content:"";position:absolute;inset:-60% -60% auto auto;width:220%;height:220%;
+    background:conic-gradient(from 0deg,var(--accent),var(--accent-2),var(--accent));
+    opacity:.05;animation:spin 12s linear infinite
   }
-  .question { 
-    font-weight: bold; color: #ffeb3b; 
-    text-shadow: 0 0 8px rgba(255,235,59,0.8);
-    margin-bottom: 10px;
+  .card > *{position:relative;z-index:1}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:18px 22px;border-bottom:1px solid var(--border)
   }
-  .option {
-    display: block; margin: 6px 0; padding: 6px 12px;
-    border-radius: 8px; transition: 0.3s;
+  .h-left{display:flex;align-items:center;gap:12px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  h2{margin:0;font-weight:800;letter-spacing:.3px;color:var(--accent);text-shadow:0 0 10px rgba(255,235,59,.45)}
+  .subtle{color:var(--muted);font-size:12px}
+
+  .body{padding:18px}
+
+  /* Summary (no pie chart) */
+  .summary{
+    display:grid;gap:10px;align-items:center;justify-items:center;margin:6px 0 14px;
+    text-align:center;
   }
-  .correct { 
-    background: rgba(0,255,0,0.2); color: #00ff6a; 
-    text-shadow: 0 0 8px rgba(0,255,0,0.8);
-    font-weight: bold;
+  .scoreline{
+    font-weight:900;font-size:28px;color:var(--accent);
+    text-shadow:0 0 10px rgba(255,235,59,.45);
   }
-  .wrong { 
-    background: rgba(255,0,0,0.2); color: #ff4c4c; 
-    text-shadow: 0 0 8px rgba(255,0,0,0.8);
-    font-weight: bold;
+  .stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:13px;font-weight:800;
+    background:rgba(255,255,255,.07);border:1px solid var(--border)
   }
-  .btn-home {
-    display: inline-block; margin-top: 30px; 
-    background: #ffeb3b; color: #333;
-    padding: 10px 20px; border-radius: 8px; 
-    font-weight: bold; text-decoration: none; 
-    transition: 0.3s;
+  .pill.ok{color:var(--ok);border-color:rgba(0,230,118,.45);background:rgba(0,230,118,.1)}
+  .pill.bad{color:var(--bad);border-color:rgba(255,82,82,.45);background:rgba(255,82,82,.1)}
+  .progress{
+    width:min(640px,92%);height:10px;border-radius:999px;overflow:hidden;border:1px solid var(--border);
+    background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)
   }
-  .btn-home:hover { 
-    background: #ffd600; transform: scale(1.05); 
-    box-shadow: 0 0 12px rgba(255,235,59,0.6); 
+  .progress > span{
+    display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-2),var(--accent));
+    box-shadow:0 0 14px rgba(255,235,59,.45)
   }
+
+  /* Question blocks */
+  .q{
+    margin:14px 0;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:16px;
+    padding:14px;transition:transform .2s, box-shadow .2s
+  }
+  .q:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+  .q.ok{border-color:rgba(0,230,118,.4)}
+  .q.bad{border-color:rgba(255,82,82,.4)}
+  .q-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .q-num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+         background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));color:var(--accent);font-weight:800;border:1px solid var(--border)}
+  .q-title{font-weight:700;color:var(--ink)}
+
+  .opt{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px;border-radius:10px;margin:6px 0;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)
+  }
+  .opt.correct{border-color:rgba(0,230,118,.6);background:rgba(0,230,118,.12)}
+  .opt.wrong{border-color:rgba(255,82,82,.6);background:rgba(255,82,82,.12)}
+  .tag{
+    font-size:11px;font-weight:800;border-radius:999px;padding:4px 8px;
+    border:1px solid var(--border);background:rgba(255,255,255,.08)
+  }
+  .tag.correct{color:var(--ok);border-color:rgba(0,230,118,.45);background:rgba(0,230,118,.1)}
+  .tag.yours{color:#ffd54f;border-color:rgba(255,235,59,.45);background:rgba(255,235,59,.12)}
+  .tag.miss{color:var(--bad);border-color:rgba(255,82,82,.45);background:rgba(255,82,82,.12)}
+
+  .foot{display:flex;justify-content:center;margin-top:18px}
+  .btn{
+    padding:12px 16px;border:none;border-radius:12px;font-weight:900;cursor:pointer;transition:.18s ease;
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1b1b1b;border:1px solid rgba(0,0,0,.15);
+    box-shadow:0 10px 22px rgba(255,235,59,.35);text-decoration:none
+  }
+  .btn:hover{transform:translateY(-1px) scale(1.01)}
+
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
-<div class="result-card">
-  <div class="score">Your Score: {{ score }}/{{ total }}</div>
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="h-left">
+        <span class="dot"></span>
+        <h2>Quiz Results</h2>
+      </div>
+      <div class="subtle">Review your answers</div>
+    </header>
 
-  {% for r in results %}
-    <div class="question-block">
-      <div class="question">{{ forloop.counter }}. {{ r.question }}</div>
+    <div class="body">
+      <!-- Summary (pie chart removed) -->
+      <section class="summary" id="summary" data-score="{{ score }}" data-total="{{ total }}">
+        <div class="scoreline">Score: {{ score }} / {{ total }}</div>
+        <div class="progress" aria-hidden="true"><span id="barFill"></span></div>
+        <div class="stats" aria-live="polite">
+          <span class="pill ok">✔ Correct: <span id="okCount">{{ score }}</span></span>
+          <span class="pill bad">✖ Wrong: <span id="badCount">0</span></span>
+        </div>
+      </section>
 
-      {% for opt in r.options %}
-        {% if opt == r.correct_answer %}
-          <div class="option correct">{{ opt }} ✅</div>
-        {% elif r.user_answer == opt %}
-          <div class="option wrong">{{ opt }} ❌</div>
-        {% else %}
-          <div class="option">{{ opt }}</div>
-        {% endif %}
+      <!-- Per-question review -->
+      {% for r in results %}
+        <div class="q {% if r.user_answer == r.correct_answer %}ok{% else %}bad{% endif %}">
+          <div class="q-head">
+            <div class="q-num">{{ forloop.counter }}</div>
+            <div class="q-title">{{ r.question }}</div>
+          </div>
+
+          {% for opt in r.options %}
+            {% if opt == r.correct_answer %}
+              <div class="opt correct">
+                <div>{{ opt }}</div>
+                <span class="tag correct">Correct</span>
+              </div>
+            {% elif r.user_answer == opt %}
+              <div class="opt wrong">
+                <div>{{ opt }}</div>
+                <span class="tag yours">Your answer</span>
+              </div>
+            {% else %}
+              <div class="opt">
+                <div>{{ opt }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
       {% endfor %}
-    </div>
-  {% endfor %}
 
-  <a href="{% url 'upload_notes' %}" class="btn-home">🏠 Back to Notes</a>
+      <div class="foot">
+        <a href="{% url 'upload_notes' %}" class="btn">🏠 Back to Notes</a>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+  (function(){
+    const summary = document.getElementById('summary');
+    const okEl = document.getElementById('okCount');
+    const badEl = document.getElementById('badCount');
+    const barFill = document.getElementById('barFill');
+
+    const score = parseInt(summary.dataset.score || '0', 10);
+    const total = parseInt(summary.dataset.total || '0', 10);
+    const pct = total ? Math.round((score / total) * 100) : 0;
+
+    const wrong = Math.max(0, total - score);
+    okEl.textContent = score;
+    badEl.textContent = wrong;
+
+    // Fill progress bar
+    if (barFill) barFill.style.width = pct + '%';
+  })();
+</script>
 {% endblock %}
+
 
 
 
