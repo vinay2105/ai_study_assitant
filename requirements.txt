@@ -11,4 +11,5 @@ langchain_community
 faiss-cpu
 beautifulsoup4
 reportlab
+dj-database-url
 
