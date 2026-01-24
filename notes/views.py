@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-import google.generativeai as genai
+from google import genai
 
 from .forms import NoteUploadForm
 from .rag_utils import store_notes_as_vectors, ask_question_with_rag
@@ -29,27 +29,37 @@ GEMINI_KEYS = [
     os.getenv("GOOGLE_API_KEY_7"),
 ]
 
+GEMINI_KEYS = [k for k in GEMINI_KEYS if k]
+
 # ------------------------------
-# Gemini model with key rotation + retry
+# Gemini client with key rotation + retry
 # ------------------------------
-def get_genai_model(retries=3, delay=2):
+def get_genai_client(retries=3, delay=2):
     last_exc = None
+
     for key in GEMINI_KEYS:
-        if not key:
-            continue
         for attempt in range(retries):
             try:
-                genai.configure(api_key=key)
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                _ = model.count_tokens("test")
-                return model
+                client = genai.Client(api_key=key)
+
+                # lightweight sanity call
+                client.models.generate_content(
+                    model="gemini-1.0-pro",
+                    contents="ping"
+                )
+
+                return client
+
             except Exception as e:
+                last_exc = e
                 if "429" in str(e):
-                    logger.warning(f"Rate limit hit for key {key}, retry {attempt+1}/{retries}")
+                    logger.warning(
+                        f"Rate limit hit for key, retry {attempt + 1}/{retries}"
+                    )
                     time.sleep(delay * (attempt + 1))
                 else:
-                    last_exc = e
                     break
+
     raise RuntimeError(f"⚠️ All Gemini keys failed. Last error: {last_exc}")
 
 # ------------------------------
@@ -57,27 +67,27 @@ def get_genai_model(retries=3, delay=2):
 # ------------------------------
 @login_required
 def upload_notes(request):
-    return render(request, 'upload_notes.html', {'form': NoteUploadForm()})
+    return render(request, "upload_notes.html", {"form": NoteUploadForm()})
 
 # ------------------------------
 # Generate Notes
 # ------------------------------
 @login_required
 def generated_notes_view(request):
-    if request.method != 'POST':
-        return redirect('upload_notes')
+    if request.method != "POST":
+        return redirect("upload_notes")
 
     form = NoteUploadForm(request.POST, request.FILES)
     if not form.is_valid():
         messages.error(request, "Invalid form submission.")
-        return redirect('upload_notes')
+        return redirect("upload_notes")
 
-    f = form.cleaned_data['file']
-    pref = form.cleaned_data['preference'].strip()
+    f = form.cleaned_data["file"]
+    pref = form.cleaned_data["preference"].strip()
     name = f.name.lower()
     tmp = f"tmp_{uuid.uuid4().hex}_{name}"
     path = default_storage.save(tmp, ContentFile(f.read()))
-    is_img = name.endswith(('.png', '.jpg', '.jpeg', '.gif'))
+    is_img = name.endswith((".png", ".jpg", ".jpeg", ".gif"))
     url = default_storage.url(path) if is_img else None
 
     # ------------------------------
@@ -85,15 +95,18 @@ def generated_notes_view(request):
     # ------------------------------
     text = ""
     try:
-        with default_storage.open(path, 'rb') as fh:
+        with default_storage.open(path, "rb") as fh:
             data = fh.read()
-        if name.endswith('.pdf'):
+
+        if name.endswith(".pdf"):
             doc = fitz.open(stream=data, filetype="pdf")
             text = "\n".join(p.get_text() for p in doc)
         else:
-            text = data.decode('utf-8', errors='ignore')
+            text = data.decode("utf-8", errors="ignore")
+
     except Exception as e:
         messages.error(request, f"⚠️ Extraction error: {e}")
+
     finally:
         default_storage.delete(path)
 
@@ -103,7 +116,8 @@ def generated_notes_view(request):
     if not text.strip():
         notes = "⚠️ Could not extract any text."
     else:
-        snippet = text[:100000]  # limit to avoid hitting max tokens
+        snippet = text[:100000]
+
         prompt = f"""
 You are an AI Study Assistant. Generate HTML-formatted notes.
 
@@ -114,45 +128,55 @@ Content:
 
 Return only clean HTML (<h2>, <p>, <ul><li>…), no fences.
 """
+
         try:
-            model = get_genai_model()
-            resp = model.generate_content(prompt)
-            notes = (resp.text or "").replace("```html", "").replace("```", "").strip()
+            client = get_genai_client()
 
-            # Save notes in session
-            request.session['generated_notes'] = notes
+            response = client.models.generate_content(
+                model="gemini-3-flash-preview",
+                contents=prompt,
+            )
 
-            # Store embeddings/vectors
+            notes = (response.text or "").replace("```html", "").replace("```", "").strip()
+
+            request.session["generated_notes"] = notes
+
             store_notes_as_vectors(text, str(request.user.id))
 
         except Exception as e:
             logger.error(f"Gemini API Error: {e}")
             notes = f"⚠️ Gemini API Error: {e}"
 
-    return render(request, 'generated_notes.html', {
-        'generated_notes': notes,
-        'file_url': url,
-        'file_is_image': is_img,
-    })
+    return render(
+        request,
+        "generated_notes.html",
+        {
+            "generated_notes": notes,
+            "file_url": url,
+            "file_is_image": is_img,
+        },
+    )
 
 # ------------------------------
 # Ask Doubt with RAG
 # ------------------------------
 @login_required
 def ask_doubt_view(request):
-    if request.method == 'POST':
-        question = request.POST.get('question', '').strip()
+    if request.method == "POST":
+        question = request.POST.get("question", "").strip()
         if not question:
-            return JsonResponse({'answer': "❌ Please ask a valid question."})
+            return JsonResponse({"answer": "❌ Please ask a valid question."})
+
         try:
             answer = ask_question_with_rag(str(request.user.id), question)
         except Exception as e:
             logger.error(f"RAG Error: {e}")
             answer = f"⚠️ RAG Error: {e}"
-        return JsonResponse({'answer': answer})
 
-    # GET → render chat interface
-    return render(request, 'ask_doubt.html')
+        return JsonResponse({"answer": answer})
+
+    return render(request, "ask_doubt.html")
+
 
 
 
