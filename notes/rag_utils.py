@@ -17,7 +17,7 @@ def get_hf_embeddings():
 # Gemini LLM (for generating / answering)
 # -----------------------------
 def get_working_llm():
-    gemini_key = os.getenv("GOOGLE_API_KEY_1")  # single key for simplicity
+    gemini_key = os.getenv("GOOGLE_API_KEY_1")
     if not gemini_key:
         raise RuntimeError("⚠️ No Gemini API key found.")
     return ChatGoogleGenerativeAI(
@@ -26,13 +26,9 @@ def get_working_llm():
     )
 
 # -----------------------------
-# Store Notes as Vectors (from raw text)
+# Store Notes as Vectors
 # -----------------------------
 def store_notes_as_vectors(raw_text: str, user_id: str):
-    """
-    Converts raw text into embeddings and stores FAISS vectorstore
-    in a temporary path based on user ID.
-    """
     splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     docs = splitter.split_documents([Document(page_content=raw_text)])
 
@@ -47,21 +43,23 @@ def store_notes_as_vectors(raw_text: str, user_id: str):
 # Ask Question with RAG
 # -----------------------------
 def ask_question_with_rag(user_id: str, question: str) -> str:
-    """
-    Loads FAISS vectorstore for a given user ID and runs RAG using Gemini LLM.
-    """
     vector_path = f"/tmp/vectorstore_user_{user_id}"
     if not os.path.exists(os.path.join(vector_path, "index.faiss")):
         return "⚠️ No notes found. Please upload notes first."
 
     embeddings = get_hf_embeddings()
-    db = FAISS.load_local(vector_path, embeddings, allow_dangerous_deserialization=True)
+    db = FAISS.load_local(
+        vector_path,
+        embeddings,
+        allow_dangerous_deserialization=True
+    )
     retriever = db.as_retriever()
 
     llm = get_working_llm()
     qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
 
     return qa.run(question)
+
 
 
 
