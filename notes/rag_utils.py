@@ -21,7 +21,7 @@ def get_working_llm():
     if not gemini_key:
         raise RuntimeError("⚠️ No Gemini API key found.")
     return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="gemini-2.5-flash",
         google_api_key=gemini_key
     )
 
