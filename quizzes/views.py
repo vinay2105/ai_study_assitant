@@ -25,7 +25,7 @@ def get_gemini_model():
         raise ValueError("No Gemini API keys configured.")
     api_key = random.choice(API_KEYS)
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
 def generate_quiz(request):
