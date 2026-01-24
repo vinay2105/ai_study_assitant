@@ -1,7 +1,7 @@
 import os
 from bs4 import BeautifulSoup
 from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
 from langchain.docstore.document import Document
 from langchain.chains import RetrievalQA
 from langchain.embeddings import HuggingFaceEmbeddings
