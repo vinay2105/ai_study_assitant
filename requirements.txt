@@ -8,6 +8,7 @@ whitenoise
 langchain
 langchain-google-genai
 langchain_community
+langchain-text-splitters
 faiss-cpu
 beautifulsoup4
 reportlab
